@@ -1,0 +1,385 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5b9595d3-3f21-4a35-b020-b8cc59d09ac3",
+      "name": "Telegram Trigger",
+      "webhookId": "97d947a1-13b2-4e59-bffa-74cb6d3e97d0",
+      "credentials": {
+        "telegramApi": {
+          "id": "aGr8qGjsgyz98FI9",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "You are an expert AI Email Assistant operating inside Telegram. Your job is to help the user manage their Gmail inbox efficiently. \n\nYou have access to tools that can read and send emails. Always use these tools when requested.\n\nCore Instructions:\n1. Greeting: If the user says hello or asks who you are, introduce yourself nicely as their AI Email Manager.\n2. Sending Emails: When the user asks to send an email, use the Gmail Send tool immediately. If the user does not provide a subject, automatically create a suitable short subject from the message context (e.g., \"Notification\", \"Test Email\", or \"Update\") and send it right away without asking for clarification.\n3. Reading/Listing Emails: When the user asks to read, check, or list emails (e.g., \"What emails did I get today?\" or \"Read my latest emails\"), use the Gmail Get Many/List tool to fetch the messages and display them in a clean, bulleted format inside Telegram.\n4. Language: Always respond in the same language the user is using (if they speak Arabic, respond in Arabic). Keep your answers helpful, clear, and concise."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        272,
+        -48
+      ],
+      "id": "c19be1f8-500b-4c1f-bb34-db11a06da42d",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        144,
+        208
+      ],
+      "id": "5d0adef0-670d-41b5-818c-5982add85abd",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "b1ZScleFdMBBhq12",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $('AI Agent').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        0
+      ],
+      "id": "2f4d2954-cc6a-43b2-91fd-865c5c21c809",
+      "name": "Send a text message",
+      "webhookId": "909221a2-8be7-4430-af8e-bae23bc3d122",
+      "credentials": {
+        "telegramApi": {
+          "id": "aGr8qGjsgyz98FI9",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to send an email. \nYou must extract the recipient's email address, the subject, and the body message from the user's prompt.\nDo not hardcode any email address.",
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        160
+      ],
+      "id": "ad733a25-fed4-42b3-b74f-8cac2d1154ff",
+      "name": "Send a message in Gmail",
+      "webhookId": "39302cf3-ecda-4f38-ad8e-de488583f78a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aAmx83TDYb5mh78C",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.chat.id }}",
+        "contextWindowLength": "={{ 5 }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        304,
+        256
+      ],
+      "id": "8e35b449-cf52-41dc-a801-d9c8d5f89ee5",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 5,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        224
+      ],
+      "id": "c2c3c6fc-00a3-4d05-8546-38d7dec30347",
+      "name": "Get many messages in Gmail",
+      "webhookId": "3a2931f9-b6c8-48cf-bf90-1fe8c089d153",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aAmx83TDYb5mh78C",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 13
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        528
+      ],
+      "id": "36b5da5c-2881-4700-a489-e44264beb594",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 20,
+        "filters": {
+          "q": "newer_than:1d"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        528
+      ],
+      "id": "ca56dfb1-da1f-4504-b8cb-61167c2d9d5f",
+      "name": "Get many messages",
+      "webhookId": "c8ee44af-87dc-4d64-b4fc-f51556cdfa39",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aAmx83TDYb5mh78C",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert AI Email Summarizer. Your job is to read the incoming emails received today and provide a clean, concise, and structured summary.\n\nPlease summarize the following email snippets into quick, clear bullet points in English. The language of the final output must be strictly in English so it is very easy for the user to read from their phone:\n\n\n{{ $json.snippet }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        656,
+        528
+      ],
+      "id": "d0587a5a-2e49-4b3e-9f4d-43a34980edd2",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        592,
+        736
+      ],
+      "id": "88db1be4-5648-436a-a4fa-3510d9084340",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "b1ZScleFdMBBhq12",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1122354297",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1008,
+        528
+      ],
+      "id": "2db3b26c-7386-4840-b77d-59244a67ca27",
+      "name": "Send a text message1",
+      "webhookId": "2ca45fc5-eecd-4f16-a2b5-8f952c86ba09",
+      "credentials": {
+        "telegramApi": {
+          "id": "aGr8qGjsgyz98FI9",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "pinData": {},
+  "triggerCount": 2,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
